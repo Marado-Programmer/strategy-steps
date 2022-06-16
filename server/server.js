@@ -2,9 +2,9 @@ const net = require("net");
 const fs = require("fs");
 const config = require("../config.js");
 
-const Room = require("Room");
+const Room = require("./Room.js");
 
-const accounts = require("../accounts.json");
+const accounts = require("./accounts.json");
 
 curPlayers = {};
 rooms = [];

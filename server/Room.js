@@ -1,5 +1,5 @@
 const setIntervalTimes = require("./setIntervalTimes.js");
-const Player = require("Player");
+const Player = require("./Player.js");
 
 module.exports = class Room {
   #MAX_PER_ROOM = 2;

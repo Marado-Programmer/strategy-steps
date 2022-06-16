@@ -46,12 +46,7 @@ client.on("lookup", (err, address, family, host) => {
 
 client.on("ready", () => {
   console.log("socket is ready to be used");
-  commandsList.commands.forEach(command => {
-    if ('error' === command.name) {
-      command.execution('showing initial prompt', client);
-      return;
-    }
-  });
+  commandsList.commands['error'].execution('showing initial prompt', client);
 });
 
 function createDataObject(data) {
