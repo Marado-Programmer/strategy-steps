@@ -2,7 +2,7 @@ const setIntervalTimes = require("./setIntervalTimes.js");
 const Player = require("./Player.js");
 
 module.exports = class Room {
-  #MAX_PER_ROOM = 2;
+  #MAX_PER_ROOM = 4;
   #SECONDS_TO_START = 5;
   #SECONDS_TO_CHOOSE = 10;
   #STAIRS_NUMBER = 12;

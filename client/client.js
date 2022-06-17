@@ -1,53 +1,61 @@
 const net = require('net');
 const fs = require('fs');
-const commandsList = require('./clientCmds.js');
+const commandsList = require('./commands.js');
 
-let client = net.connect(require("../connectOptions.js"));
+let client;
 
-client.readline = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: true,
-  removeHistoryDuplicates: true,
-  prompt: ': ',
-});
+module.exports.init = () => {
+  client = net.connect(require("../connectOptions.js"));
 
+  client.readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+    removeHistoryDuplicates: true,
+    prompt: ': ',
+  });
 
-client.on('data', data => {
-  const dataObject = createDataObject(data);
+  client.on('data', data => {
+    const dataObject = createDataObject(data);
+  
+    for (const commandName in dataObject) {
+      let executed = false;
 
-  for (let commandName in dataObject) {
-    let executed = false;
-    commandsList.commands.forEach(command => {
-      if (commandName === command.name || command.aliases.includes(commandName)) {
-        console.log(command.execution(dataObject[commandName], client).message);
+      for (const cmdName in commandsList) {
+        const command = commandsList[cmdName];
 
-        executed = true;
-        return;
+        if (commandName === command.name || command.aliases.includes(commandName)) {
+          console.log(command.execution(dataObject[commandName], client).message);
+  
+          executed = true;
+          return;
+        }
       }
-    });
+  
+      if (!executed)
+        console.log(dataObject[commandName]);
+    }
+  });
 
-    if (!executed)
-      console.log(dataObject[commandName]);
-  }
-});
+  client.on("connect", () => {
+    console.log("connection is successfully established:", client.address());
+  });
+  
+  client.on("timeout", () => {
+    console.log("waiting for connection");
+  });
+  
+  client.on("lookup", (err, address, family, host) => {
+    console.log(err, address, family, host);
+  });
+  
+  client.on("ready", () => {
+    console.log("socket is ready to be used");
+    commandsList.error.execution('showing initial prompt', client);
+  });
+};
 
-client.on("connect", () => {
-  console.log("connection is successfully established:", client.address());
-});
-
-client.on("timeout", () => {
-  console.log("waiting for connection");
-});
-
-client.on("lookup", (err, address, family, host) => {
-  console.log(err, address, family, host);
-});
-
-client.on("ready", () => {
-  console.log("socket is ready to be used");
-  commandsList.commands['error'].execution('showing initial prompt', client);
-});
+module.exports.name = "client";
 
 function createDataObject(data) {
   const dataString = data instanceof Buffer ? data.toString() : data;
