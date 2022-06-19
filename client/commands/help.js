@@ -2,16 +2,16 @@ let currentService;
 
 module.exports = {
   name: "help",
-  aliases: [ 'h', ],
+  aliases: [ 'h', 'man' , '?', ],
   requirements: [],
   description: "Shows list of current avaliable commands for the current user.",
   execution: (service, ...args) => {
     currentService = service;
 
-    helpMessage = '';
+    let helpMessage = '';
 
     if (args.length >= 1)
-      args.forEach(i => helpMessage += commandHelper(i));
+      args.forEach(i => helpMessage += extendedCommandHelper(i));
     else
       for (const i in service.commands) helpMessage += commandHelper(i);
 
@@ -22,12 +22,18 @@ module.exports = {
 }
 
 function commandHelper(commandName) {
+  const command = currentService.commands[commandName];
+
+  if (!('requirements' in command) || command.requirements.every(requirement => currentService.specs.includes(requirement)));
+    return `\t${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}\n`;
+}
+  
+function extendedCommandHelper(commandName) {
   const command = currentService.commands?.[commandName];
 
   if (command === undefined)
     return `Command ${commandName} doesn't exist.\n`;
 
-  if (!('requirements' in command) || command.requirements.every(requirement => service.specs.includes(requirement)));
-    return `\t${command.name} --- ${command.description ? command.description : "(no description!)"}\n`;
+  return `\t${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}${command.description.extended ? ("\n\n" + command.description.extended + "\n\n") : ''}`;
 }
   

@@ -8,8 +8,6 @@ module.exports.start = (service) => {
   logo();
 
   listCommands();
-
-  return service.init();
 };
 
 function logo() {
