@@ -37,17 +37,6 @@ function readableOff() {
   userClient.readline.removeAllListeners("line");
 }
 
-function logIn() {
-  userClient.readline.question('enter your username: ', answerUsername => {
-    userClient.readline.question('enter your password: ', answerPassword => {
-      userClient.write(`logIn=${JSON.stringify({
-        name: answerUsername,
-        password: answerPassword,
-      })}`);
-    });
-  });
-}
-
 function register() {
   userClient.readline.question('enter your new account username: ', answerUsername => {
     userClient.readline.question('enter a password for this username: ',

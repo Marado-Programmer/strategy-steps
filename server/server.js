@@ -6,8 +6,8 @@ const Room = require("./Room.js");
 
 const accounts = require("./accounts.json");
 
-curPlayers = {};
-rooms = [];
+const curPlayers = {};
+const rooms = [];
 let roomsCounter = 0;
 
 let server;
@@ -77,61 +77,58 @@ module.exports.init = port => {
         dataObj[key] = value;
       });
 
-      if (!("account" in connection)) {
-        if (dataObj.register) {
-          let register = JSON.parse(dataObj.register);
+      if (dataObj.register) {
+        let register = JSON.parse(dataObj.register);
 
-          if (register.username in accounts) {
-            connection.write(`err=username ${register.username} already taken`);
-            return;
-          }
-
-          accounts[register.username] = {
-            name: register.username,
-            password: register.password,
-            points: 0,
-          };
-
-          fs.writeFile(config.database, `${JSON.stringify(accounts)}`, err => {
-            if (err)
-              throw err;
-          });
-
-          connection.write(`err=account ${register.username} was created`);
-        } else if (dataObj.logIn) {
-          let logIn = JSON.parse(dataObj.logIn);
-
-          if (logIn.name in curPlayers) {
-            connection.write(`err=user ${logIn.name} already logged in`);
-            return;
-          }
-
-          let err = false;
-
-          if (!(logIn.name in accounts)) err = true;
-          if (!err && accounts[logIn.name].password !== logIn.password) err = true;
-
-          if (err) {
-            connection.write(`err=wrong password for the ${logIn.name}`);
-            return;
-          }
-          
-          connection.write(`goodLogIn=logged+in+as+${logIn.name}&player=${JSON.stringify(accounts[logIn.name])}`);
-
-          connection.account = accounts[logIn.name];
-
-          curPlayers[logIn.name] = connection.account;
-
-          addToRoom(connection);
+        if (register.username in accounts) {
+          connection.write(`username ${register.username} already taken`);
+          return;
         }
 
-        return;
+        accounts[register.username] = {
+          name: register.username,
+          password: register.password,
+          points: 0,
+        };
+
+        fs.writeFile(config.database, `${JSON.stringify(accounts)}`, err => {
+          if (err)
+            throw err;
+        });
+
+        connection.write(`account ${register.username} was created`);
+      } else if (dataObj.logIn) {
+        let logIn = JSON.parse(dataObj.logIn);
+
+        if (logIn.name in curPlayers) {
+          connection.write(`user ${logIn.name} already logged in`);
+          return;
+        }
+
+        let err = false;
+
+        if (!(logIn.name in accounts)) err = true;
+        if (!err && accounts[logIn.name].password !== logIn.password) err = true;
+
+        if (err) {
+          connection.write(`wrong password for the ${logIn.name}`);
+          return;
+        }
+        
+        connection.write(`logged+in+as+${logIn.name}&player=${JSON.stringify(accounts[logIn.name])}`);
+
+        connection.account = accounts[logIn.name];
+
+        curPlayers[logIn.name] = connection.account;
       }
-  
+
       if (dataObj.chosenNumber) {
         rooms[connection.account.room].play(connection.account.name, +dataObj.chosenNumber);
       }
   
+      if (dataObj.queue)
+        addToRoom(connection);
+
       if (dataObj.newGame) {
         removeToRoom(connection);
       }

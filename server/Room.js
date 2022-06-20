@@ -196,7 +196,7 @@ module.exports = class Room {
       + "\tF.....######\t=>nome3\n"
       + "\tF......#####\t=>nome4\n";
 
-    this.notifyPlayers("clear=true", /*`msg=${stringGame}`, */"read=choose between the numbers 1, 3 and 5: ///chosenNumber");
+    this.notifyPlayers("clear=true", stringGame, "read=choose between the numbers 1, 3 and 5: ///chosenNumber");
 
     this.guessingTime = setTimeout( () => {
       console.log('Time is up');

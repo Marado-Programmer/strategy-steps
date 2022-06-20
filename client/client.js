@@ -9,6 +9,8 @@ module.exports = {
 
     module.exports.service.on('data', data => {
       const dataObject = createDataObject(data);
+
+      console.log("dataObject", dataObject);
     });
 
     module.exports.service.on("connect", () => {

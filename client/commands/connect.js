@@ -36,6 +36,8 @@ module.exports = {
       };
     }
 
+    service.specs.push("connected");
+
     return {
       message: "Connected to the Socket",
     };

@@ -1,10 +1,10 @@
 module.exports = {
   name: "queue",
-  aliases: [],
+  aliases: [ 'q', ],
   description: "queue for a game",
-  execution: (data, client) => {
-    client.write('newGame=true');
+  execution: (service, ...args) => {
+    service.service.write('queue=true');
 
-    return { message: '', };
+    return { message: 'Queing', };
   },
 }
