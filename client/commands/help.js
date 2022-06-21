@@ -7,7 +7,7 @@ module.exports = {
   description: {
     base: "Shows list of current avaliable commands for the current user.",
   },
-  execution: (service, ...args) => {
+  execution: async (service, ...args) => {
     currentService = service;
 
     let helpMessage = '';
@@ -18,7 +18,7 @@ module.exports = {
       for (const i in service.commands) helpMessage += commandHelper(i);
 
     return {
-      message: helpMessage,
+      message: `#Commands:\n${helpMessage}`,
     };
   },
 }
@@ -27,18 +27,25 @@ function commandHelper(commandName) {
   const command = currentService.commands[commandName];
 
   if ('requirements' in command)
-    if (command.requirements.every?.(requirement => currentService.specs.includes(requirement)))
-      return `\t${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}\n`;
+    if (command.requirements.every(requirement => currentService.specs.includes(requirement)))
+      return ` * ${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}\n`;
   
   return '';
 }
   
 function extendedCommandHelper(commandName) {
-  const command = currentService.commands?.[commandName];
+  const command = getCommand(commandName);
 
   if (command === undefined)
     return `Command ${commandName} doesn't exist.\n`;
 
-  return `\t${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}${command.description.extended ? ("\n\n" + command.description.extended + "\n\n") : ''}`;
+  return `---\n * ${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}${command.description.extended ? ('\n' + command.description.extended) : ''}${command.aliases ? "\n\n * Aliases: " + command.aliases : ''}\n`;
 }
   
+function getCommand(name) {
+  for (const commandName in currentService.commands) {
+    const command = currentService.commands[commandName];
+
+    if (command.name === name || command.aliases.includes(name)) return command;
+  }
+}

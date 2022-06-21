@@ -6,7 +6,7 @@ module.exports = {
     base: "Connect to a socket with the given arguments or by using the configuration file.",
     extended: "Use the -p flag to specify the port and the -h flag to specify the host.\nThe priority of the configuration goes to the flags.",
   },
-  execution: (service, ...args) => {
+  execution: async (service, ...args) => {
     let configuration;
     if (!args.includes("--ignore-config")) {
       const configurationFile = args.includes("-c") ? args[args.indexOf("-c") + 1] : "../../config.js";
@@ -28,7 +28,7 @@ module.exports = {
       configuration.host = args[args.indexOf("-h") + 1];
 
     try {
-      service.init(configuration);
+      await service.init(configuration, service);
     } catch (e) {
       return {
         message: "Couldn't connect to the Socket.",
@@ -39,6 +39,7 @@ module.exports = {
     service.specs.push("connected");
 
     return {
+      noPrompt: true,
       message: "Connected to the Socket",
     };
   }

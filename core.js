@@ -11,7 +11,7 @@ module.exports.start = (service) => {
 };
 
 function logo() {
-  console.log(`
+  console.log(`\n
 \t##########################
 \t##   ___                ##
 \t##  / __)  #-al220007-# ##
@@ -21,11 +21,12 @@ function logo() {
 \t## #-${currentService.name}-# (___/teps ##
 \t##                      ##
 \t##########################
-  `);
+  \n`);
 }
 
 function listCommands() {
-  const help = currentService.commands?.help?.execution(currentService);
-
-  console.log(help?.message ?? '');
+  currentService.commands?.help?.execution(currentService).then(obj => {
+    console.log(obj.message ?? '');
+    currentService.readline.prompt();
+  });
 }

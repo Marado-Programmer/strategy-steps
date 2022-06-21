@@ -19,8 +19,6 @@ module.exports = class Room {
     this.canStart = false;
     this.started = false;
 
-    console.log('A room created with this account: ', player.account);
-
     if (player) this.addPlayer(player);
   }
 
@@ -40,58 +38,7 @@ module.exports = class Room {
 
     this.#playersCounter++;
 
-    this.notifyPlayers(/*"clear=true", */`msg=Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
-    /*
-    setTimeout(() => {
-      this.notifyPlayers(
-        'msg=1--------------------------------',
-        'msg=2',
-        'msg=3',
-        'msg=4',
-        'msg=5'
-      );
-    }, 1000);
-    setTimeout(() => {
-      this.notifyPlayers(
-        'msg=1--------------------------------',
-        'msg=2',
-        'msg=3',
-        'msg=4',
-        'msg=5'
-      );
-    }, 2000);
-    setTimeout(() => {
-      this.notifyPlayers(
-        'msg=1--------------------------------',
-        'msg=2',
-        'msg=3',
-        'msg=4',
-        'msg=5'
-      );
-    }, 3000);
-    setTimeout(() => {
-      this.notifyPlayers(
-        'msg=1--------------------------------',
-        'msg=2',
-        'msg=3',
-        'msg=4',
-        'msg=5'
-      );
-    }, 4000);
-    setTimeout(() => {
-      this.notifyPlayers(
-        'msg=1--------------------------------',
-        'msg=2',
-        'msg=3',
-        'msg=4',
-        'msg=5'
-      );
-    }, 5000);
-
-    console.log('A player entered the room:', player.account);
-    console.log(`Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
-    console.log('Current players:', this.getPlayers());
-    */
+    this.notifyPlayers(`clear=Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
 
     this.tryStart();
   }
@@ -104,7 +51,7 @@ module.exports = class Room {
     if (!this.started) {
       this.canAdd = true;
       this.canStart = false;
-      this.notifyPlayers(`msg=Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
+      this.notifyPlayers(`clear=Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
     }
 
     console.log('A player left the room:', player);
@@ -158,27 +105,21 @@ module.exports = class Room {
   }
 
   startGame() {
-    this.notifyPlayers("clear=true");
+    this.notifyPlayers("clear= ");
 
     let secondsLeft = this.#SECONDS_TO_START;
 
     setIntervalTimes(() => {
-      this.notifyPlayers(`msg=the game will start in ${secondsLeft--} seconds!`);
+      this.notifyPlayers(`clear=the game will start in ${secondsLeft--} seconds!`);
     }, 1000, this.#SECONDS_TO_START, () => {
-      console.log('Game is starting with this players', this.getPlayers());
-
       if (!this.canStart) {
-        this.notifyPlayers('msg=A player disconnected', `msg=Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
+        this.notifyPlayers(`clear=A player disconnected.\nRoom it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
 
-        console.log('But it didn\'t started');
-        
         return;
       }
 
-      console.log('It started with this players', this.getPlayers());
-
       this.started = true;
-      this.notifyPlayers("msg=started");
+      this.notifyPlayers("started");
 
       setTimeout(() => {
         this.startRound();
@@ -187,16 +128,9 @@ module.exports = class Room {
   }
 
   startRound() {
-    console.log('Round starts');
-    console.log('Tells them to chose a number');
     this.#playsCounter = 0;
 
-    let stringGame = "\tF........###\t=>nome1\n"
-      + "\tF..........#\t=>nome2\n"
-      + "\tF.....######\t=>nome3\n"
-      + "\tF......#####\t=>nome4\n";
-
-    this.notifyPlayers("clear=true", stringGame, "read=choose between the numbers 1, 3 and 5: ///chosenNumber");
+    this.notifyPlayers("read=choose between the numbers 1, 3 and 5: &code=chosenNumber");
 
     this.guessingTime = setTimeout( () => {
       console.log('Time is up');
@@ -255,8 +189,6 @@ module.exports = class Room {
       this.#players[p].chosen = 0;
     }
 
-    console.log('The players now', this.getPlayers());
-
     let winner = undefined;
 
     for (let p in this.#players)
@@ -265,14 +197,11 @@ module.exports = class Room {
           winner = this.#players[p].account.name;
 
     if (winner !== undefined) {
-      console.log('the player that won', this.#players[winner]);
-
-      this.notifyPlayers(`msg=the+winner+is+${winner}`);
+      this.notifyPlayers(`clear=the+winner+is+${winner}`);
 
       this.#players[winner].account.points++;
       this.endGame();
     } else {
-      console.log('this players', this.getPlayers(), 'goes to the next round');
       this.startRound();
     }
   }
@@ -287,8 +216,6 @@ module.exports = class Room {
         this.removePlayer(this.#players[p].account.name);
       }
 
-      console.log('room now', this.getPlayers());
-
       this.canAdd = true;
       this.canStart = false;
       this.#playsCounter = 0;
@@ -297,9 +224,7 @@ module.exports = class Room {
   }
 
   tryStart() {
-    console.log('try to start the game');
     if (this.#playersCounter >= this.#MAX_PER_ROOM) {
-      console.log('can start the game');
       this.canAdd = false;
       this.canStart = true;
       this.started = false;
@@ -310,4 +235,6 @@ module.exports = class Room {
   getCanAdd = () => this.canAdd;
 
   isEmpty = () => this.#playersCounter === 0;
+
+  toAll = msg => this.notifyPlayers(msg);
 }

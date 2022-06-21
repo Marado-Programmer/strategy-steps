@@ -6,8 +6,8 @@ const Room = require("./Room.js");
 
 const accounts = require("./accounts.json");
 
-const curPlayers = {};
-const rooms = [];
+module.exports.curPlayers = {};
+module.exports.rooms = [];
 let roomsCounter = 0;
 
 let server;
@@ -19,18 +19,18 @@ function addToRoom(player) {
 
   let added = false;
 
-  for (let room in rooms)
-    if (rooms[room].getCanAdd()) {
+  for (let room in module.exports.rooms)
+    if (module.exports.rooms[room].getCanAdd()) {
       added = true;
-      curPlayers[playerObj.name].room = +room;
-      rooms[room].addPlayer(player);
+      module.exports.curPlayers[playerObj.name].room = +room;
+      module.exports.rooms[room].addPlayer(player);
       return;
     }
 
   if (added) return;
   
-  curPlayers[playerObj.name].room = +roomsCounter;
-  rooms[roomsCounter++] = new Room(player);
+  module.exports.curPlayers[playerObj.name].room = +roomsCounter;
+  module.exports.rooms[roomsCounter++] = new Room(player);
 
   return;
 }
@@ -39,12 +39,12 @@ function removeToRoom(player, add = true) {
   if (!("account" in player))
     return;
 
-  let playerObj = player.account;
+  let playerObj = module.exports.curPlayers[player.account.name];
 
-  rooms[playerObj.room].removePlayer(player);
+  module.exports.rooms[playerObj.room].removePlayer(player);
 
-  if (rooms[playerObj.room].isEmpty())
-    delete rooms[playerObj.room];
+  if (module.exports.rooms[playerObj.room].isEmpty())
+    delete module.exports.rooms[playerObj.room];
 
   delete playerObj.room;
 
@@ -77,6 +77,12 @@ module.exports.init = port => {
         dataObj[key] = value;
       });
 
+      if (dataObj.toRoom) {
+        module.exports.rooms[module.exports.curPlayers[connection.account.name].room].toAll(dataObj.toRoom);
+
+        return;
+      }
+
       if (dataObj.register) {
         let register = JSON.parse(dataObj.register);
 
@@ -100,7 +106,7 @@ module.exports.init = port => {
       } else if (dataObj.logIn) {
         let logIn = JSON.parse(dataObj.logIn);
 
-        if (logIn.name in curPlayers) {
+        if (logIn.name in module.exports.curPlayers) {
           connection.write(`user ${logIn.name} already logged in`);
           return;
         }
@@ -119,11 +125,28 @@ module.exports.init = port => {
 
         connection.account = accounts[logIn.name];
 
-        curPlayers[logIn.name] = connection.account;
+        module.exports.curPlayers[logIn.name] = connection.account;
+      } else if (dataObj.logInGuest) {
+        let logIn;
+        do {
+          logIn = {
+            name: `Guest${Math.round(Math.random() * 0xfffffff).toString(16)}`,
+            type: "Guest",
+          }
+
+        } while (logIn.name in module.exports.curPlayers);
+
+        
+        connection.write(`logged+in+as+${logIn.name}&player=${JSON.stringify(logIn)}`);
+
+        connection.account = logIn;
+
+        module.exports.curPlayers[logIn.name] = connection.account;
       }
 
-      if (dataObj.chosenNumber) {
-        rooms[connection.account.room].play(connection.account.name, +dataObj.chosenNumber);
+      if (dataObj.chose) {
+        console.log(dataObj);
+//        module.exports.rooms[connection.account.room].play(connection.account.name, +dataObj.chosenNumber);
       }
   
       if (dataObj.queue)
@@ -132,12 +155,20 @@ module.exports.init = port => {
       if (dataObj.newGame) {
         removeToRoom(connection);
       }
+
+      if (dataObj.logout) {
+        delete module.exports.curPlayers[dataObj.logout];
+      }
     });
   
     connection.on("end", () => {
-      removeToRoom(connection, false);
+      if (!connection.account) return;
+
+      if ("room" in module.exports.curPlayers[connection.account.name])
+        removeToRoom(connection, false);
+
       if ('account' in connection)
-        delete curPlayers[connection.account.name];
+        delete module.exports.curPlayers[connection.account.name];
     });
   
     connection.on("error", e => console.error(e.toString()));
