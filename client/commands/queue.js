@@ -7,7 +7,7 @@ module.exports = {
     extended: "To specify a room to enter by their ID use the -R flag",
   },
   execution: async (service, ...args) => {;
-    const room = args.includes("-R") ? args[args.includes("-R") + 1] : null
+    const room = args.includes("-R") ? (args[args.lastIndexOf("-R") + 1] ?? "NULL") : undefined;
     service.service.write(`queue=${room}`);
 
     service.specs.push("inRoom");

@@ -39,7 +39,7 @@ function extendedCommandHelper(commandName) {
   if (command === undefined)
     return `Command ${commandName} doesn't exist.\n`;
 
-  return `---\n * ${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}${command.description.extended ? ('\n' + command.description.extended) : ''}${command.aliases ? "\n\n * Aliases: " + command.aliases : ''}\n`;
+  return `---\n * ${command.name} --- ${command.description.base ? command.description.base : "(no description!)"}${command.description.extended ? ('\n' + command.description.extended) : ''}${(command.aliases && command.aliases.length !== 0) ? "\n\n * Aliases: " + command.aliases : ''}\n`;
 }
   
 function getCommand(name) {

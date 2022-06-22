@@ -6,8 +6,8 @@ module.exports = {
     base: "msgLobby",
     extended: "",
   },
-  execution: (service, ...args) => {
-    service.service.write(`toRoom=${args.join(' ')}`);
+  execution: async (service, ...args) => {
+    await service.service.write(`toRoom=${args.join(' ')}`);
 
     return { message: '', };
   }

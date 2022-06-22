@@ -1,10 +1,39 @@
 const net = require("net");
 const fs = require("fs");
+
+const processRequest = require("./processRequest.js");
+
 const config = require("../config.js");
 
 const Room = require("./Room.js");
 
 const accounts = require("./accounts.json");
+
+module.exports.httpServer = processRequest(3000);
+
+module.exports.httpServer.get("/top", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+
+  const acctsOrder = Object.values(accounts).sort((x, y) => {
+    return x.points + y.points;
+  });
+
+  let counter, min;
+  acctsOrder.forEach( acc => {
+    if (counter > 10) return;
+
+    if (min === undefined || acc.points < min) {
+      counter++;
+      min = acc.points;
+    }
+  });
+
+  res.write(JSON.stringify(acctsOrder.filter( acc => acc.points >= min).sort((x, y) => {
+    return x.points + y.points;
+  })));
+
+  res.end();
+});
 
 module.exports.curPlayers = {};
 module.exports.rooms = [];
@@ -12,12 +41,36 @@ let roomsCounter = 0;
 
 let server;
 
-function addToRoom(player) {
+function addToRoom(player, roomID) {
   if (!("account" in player)) return;
 
   let playerObj = player.account;
 
   let added = false;
+
+  if (roomID !== "undefined") {
+    if (roomID === "NULL") {
+      player.write("Room ID undefined");
+      return;
+    }
+
+    if (!(/^\d+$/.test(roomID))) {
+      player.write("Rooms' ID are numeric");
+      return;
+    }
+
+    if (module.exports.rooms[roomID] === undefined) {
+      player.write(`Room with the ID ${roomID} doesn't exist`); 
+      return;
+    }
+
+    if (module.exports.rooms[roomID].getCanAdd())
+      module.exports.rooms[roomID].addPlayer(player);
+    else
+      player.write(`Room with the ID ${roomID} it's full`);
+
+    return;
+  }
 
   for (let room in module.exports.rooms)
     if (module.exports.rooms[room].getCanAdd()) {
@@ -30,26 +83,28 @@ function addToRoom(player) {
   if (added) return;
   
   module.exports.curPlayers[playerObj.name].room = +roomsCounter;
-  module.exports.rooms[roomsCounter++] = new Room(player);
+  module.exports.rooms[roomsCounter++] = new Room(this, player);
 
   return;
 }
 
-function removeToRoom(player, add = true) {
+function removeToRoom(player) {
   if (!("account" in player))
     return;
 
-  let playerObj = module.exports.curPlayers[player.account.name];
+  const playerObj = module.exports.curPlayers[player.account.name];
 
-  module.exports.rooms[playerObj.room].removePlayer(player);
+  module.exports.rooms[playerObj.room].removePlayer(player.account.name);
 
   if (module.exports.rooms[playerObj.room].isEmpty())
     delete module.exports.rooms[playerObj.room];
 
   delete playerObj.room;
 
-  if (add)
-    addToRoom(player);
+  fs.writeFile(config.database, `${JSON.stringify(accounts)}`, err => {
+    if (err)
+      throw err;
+  });
 
   return;
 }
@@ -77,8 +132,19 @@ module.exports.init = port => {
         dataObj[key] = value;
       });
 
+      console.log(dataObj);
+
       if (dataObj.toRoom) {
         module.exports.rooms[module.exports.curPlayers[connection.account.name].room].toAll(dataObj.toRoom);
+
+        return;
+      }
+
+      if (dataObj.listRooms) {
+        if (dataObj.listRooms === "all")
+          connection.write(`roomsList=${JSON.stringify(module.exports.rooms)}`);
+        else
+          connection.write(`roomsList=${JSON.stringify(module.exports.rooms.filter(r => r.getCanAdd()))}`);
 
         return;
       }
@@ -137,7 +203,7 @@ module.exports.init = port => {
         } while (logIn.name in module.exports.curPlayers);
 
         
-        connection.write(`logged+in+as+${logIn.name}&player=${JSON.stringify(logIn)}`);
+        connection.write(`logged in as ${logIn.name}&player=${JSON.stringify(logIn)}`);
 
         connection.account = logIn;
 
@@ -145,18 +211,25 @@ module.exports.init = port => {
       }
 
       if (dataObj.chose) {
-        console.log(dataObj);
-//        module.exports.rooms[connection.account.room].play(connection.account.name, +dataObj.chosenNumber);
+        const datata = JSON.parse(dataObj.chose);
+
+        module.exports.rooms[module.exports.curPlayers[connection.account.name].room].play(datata.name, +datata.number);
       }
   
       if (dataObj.queue)
-        addToRoom(connection);
+        addToRoom(connection, dataObj.queue);
 
-      if (dataObj.newGame) {
+      if (dataObj.quitRoom) {
         removeToRoom(connection);
       }
 
       if (dataObj.logout) {
+      if (!connection.account) return;
+
+      if ("room" in module.exports.curPlayers[dataObj.logout])
+        removeToRoom(connection);
+
+      if ('account' in connection)
         delete module.exports.curPlayers[dataObj.logout];
       }
     });
@@ -165,7 +238,7 @@ module.exports.init = port => {
       if (!connection.account) return;
 
       if ("room" in module.exports.curPlayers[connection.account.name])
-        removeToRoom(connection, false);
+        removeToRoom(connection);
 
       if ('account' in connection)
         delete module.exports.curPlayers[connection.account.name];

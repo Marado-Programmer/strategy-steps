@@ -14,7 +14,8 @@ module.exports = class Room {
 
   guessingTime;
 
-  constructor(player = null) {
+  constructor(server, player = null) {
+    this.server = server;
     this.canAdd = true;
     this.canStart = false;
     this.started = false;
@@ -53,10 +54,6 @@ module.exports = class Room {
       this.canStart = false;
       this.notifyPlayers(`clear=Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
     }
-
-    console.log('A player left the room:', player);
-    console.log(`Room it's ${this.#playersCounter}/${this.#MAX_PER_ROOM}`);
-    console.log('Current players:', this.getPlayers());
   }
 
   notifyPlayers(...messages) {
@@ -130,38 +127,31 @@ module.exports = class Room {
   startRound() {
     this.#playsCounter = 0;
 
-    this.notifyPlayers("read=choose between the numbers 1, 3 and 5: &code=chosenNumber");
+    this.notifyPlayers(`showScore=${JSON.stringify(this.#players)}`);
 
-    this.guessingTime = setTimeout( () => {
-      console.log('Time is up');
-      this.checkWhoWins();
-    }, this.#SECONDS_TO_CHOOSE * 1000);
+    setTimeout(() => {
+      this.notifyPlayers("read=choose between the numbers 1, 3 and 5: ");
+
+      this.guessingTime = setTimeout( () => {
+        console.log('Time is up');
+        this.checkWhoWins();
+        this.notifyPlayers("endRead=true");
+      }, this.#SECONDS_TO_CHOOSE * 1000);
+    }, 1000);
   }
 
   play = (playerName, chosenNumber) => {
-    console.log('The player', this.#players[playerName], 'chosed the number', chosenNumber);
-
-    if (![1, 3, 5].some(i => i === +chosenNumber)) {
-      this.#players[playerName].write('prompt=true');
-      return;
-    }
-
-    console.log('E passou');
-
     this.#players[playerName].chosen = +chosenNumber;
 
-    console.log('The player', this.#players[playerName], 'can\'t chose the number now');
     this.#players[playerName].write(`endRead=${chosenNumber}`);
 
     if (++this.#playsCounter >= Object.keys(this.#players).length) {
       clearTimeout(this.guessingTime);
-      console.log('All the players chosed a number');
       this.checkWhoWins();
     }
   };
 
   checkWhoWins() {
-    console.log('Checking for wins');
     this.notifyPlayers("endRead=time is up");
 
     const chosenNumbers = [];
@@ -179,48 +169,66 @@ module.exports = class Room {
       }
     });
 
-    console.log('The players in the room', this.getPlayers());
-
-    for (let p in this.#players) {
-      if (!cantWalk.some(i => i === this.#players[p].chosen)) {
-        this.#players[p].stair += this.#players[p].chosen;
-        console.log(this.#players[p], 'walked');
+    setIntervalTimes(() => {
+      this.notifyPlayers(`showScore=${JSON.stringify(this.#players)}`);
+      for (let p in this.#players) {
+        if (!cantWalk.some(i => i === this.#players[p].chosen)) {
+          if (this.#players[p].chosen > 0) {
+            this.#players[p].stair++;
+            this.#players[p].chosen--;
+          }
+        }
       }
-      this.#players[p].chosen = 0;
-    }
+    }, 400, this.#SECONDS_TO_START, () => {
+      let winner = undefined;
 
-    let winner = undefined;
+      for (let p in this.#players)
+        if (this.#players[p].stair >= this.#STAIRS_NUMBER)
+          if ((winner === undefined) || (this.#players[winner].stair < this.#players[p].stair))
+            winner = this.#players[p].account.name;
 
-    for (let p in this.#players)
-      if (this.#players[p].stair >= this.#STAIRS_NUMBER)
-        if ((winner === undefined) || (this.#players[winner].stair < this.#players[p].stair))
-          winner = this.#players[p].account.name;
+      if (winner !== undefined) {
+        this.notifyPlayers(`clear=the winner is ${winner}`);
 
-    if (winner !== undefined) {
-      this.notifyPlayers(`clear=the+winner+is+${winner}`);
-
-      this.#players[winner].account.points++;
-      this.endGame();
-    } else {
-      this.startRound();
-    }
+        this.#players[winner].account.points++;
+        this.endGame();
+      } else {
+        this.startRound();
+      }
+    });
   }
 
   endGame() {
-    console.log('the game ended. players', this.getPlayers());
+    //this.notifyPlayers("replay=Exit Room? [Y/N]");
 
-    setTimeout(() => {
-      this.notifyPlayers('queue=true');
+    let removed = false;
 
+    this.guessingTime = setTimeout( () => {
       for (let p in this.#players) {
-        this.removePlayer(this.#players[p].account.name);
+        const ans = this.#players[p].chosen;
+        
+        if (!(['N', 'n'].includes(ans))) {
+          this.#players[p].chosen = 0;
+          this.#players[p].write("quitRoom=true");
+          this.removePlayer(this.#players[p].account.name);
+          removed = true;
+          continue;
+        }
+
+        this.#players[p].chosen = 0;
       }
 
-      this.canAdd = true;
-      this.canStart = false;
-      this.#playsCounter = 0;
-      this.tryStart();
-    }, 5000);
+      this.notifyPlayers("restarting game");
+      this.guessingTime = setTimeout( () => {
+        if (removed) {
+          this.canAdd = true;
+          this.canStart = false;
+          this.#playsCounter = 0;
+        }
+
+        this.tryStart();
+      }, this.#SECONDS_TO_CHOOSE * 1000);
+    }, this.#SECONDS_TO_CHOOSE * 1000);
   }
 
   tryStart() {

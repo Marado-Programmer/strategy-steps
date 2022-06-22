@@ -12,33 +12,26 @@ module.exports = {
   }
 }
 
-function register(service) {
-  service.readline.question('enter your new account username: ',
-    answerUsername => {
-      service.readline.question('enter a password for this username: ',
-        answerPassword => {
-          service.readline.question('repeat the password for this username: ',
-            answerRPassword => {
-              if (answerPassword !== answerRPassword) {
-                service.readline.resume();
-                return {
-                  message: "Error, you did not typed the same password",
-                };
-              }
-  
-              service.service.write(`register=${JSON.stringify({
-                username: answerUsername,
-                password: answerPassword,
-              })}`);
+async function register(service) {
+  const answerUsername = await service.readline.question('enter your new account username: ');
+  const answerPassword = await service.readline.question('enter a password for this username: ');
+  const answerRPassword = await service.readline.question('repeat the password for this username: ');
 
-              service.readline.resume();
-              return {
-                message: "Registered",
-              };
-            }
-          );
-        }
-      );
-    }
-  );
+  if (answerPassword !== answerRPassword) {
+    service.readline.resume();
+    return {
+      message: "Error, you did not typed the same password",
+    };
+  }
+  
+  await service.service.write(`register=${JSON.stringify({
+    username: answerUsername,
+    password: answerPassword,
+  })}`);
+
+  service.readline.resume();
+
+  return {
+    message: "Registered",
+  };
 }

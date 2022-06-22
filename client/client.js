@@ -40,6 +40,13 @@ module.exports = {
         return;
       }
 
+      if (dataObject.roomsList) {
+        console.clear();
+        console.log(JSON.parse(dataObject.roomsList));
+        hostClient.readline.prompt();
+        return
+      }
+
       if (dataObject.clear) {
         console.clear();
         console.log(dataObject.clear);
@@ -49,29 +56,54 @@ module.exports = {
         return;
       }
 
-      if (dataObject.read) {
-        //console.clear();
-        
-        let number;
+      if (dataObject.showScore) {
+        const playerz = JSON.parse(dataObject.showScore);
 
-        let time = false;
+        let representation = '';
 
-        do {
-          const numberasdf = await hostClient.readline.question(dataObject.read);
-          number = numberasdf;
-          if (time) break;
-        } while ([1,3,5].includes(number) && !time);
+        for (const p in playerz) {
+          const cP = playerz[p];
 
-        setTimeout(() => {
-          time = true;
-          if ([1,3,5].includes(number)) {
-            console.log(module.exports);
-            module.exports.service.write("chose=" + JSON.stringify({
-              chose: number,
-              name: client.account?.name,
-            }));
+          representation += "\n"
+
+          for (let i = 0; i < 12; i++) {
+            if (i >= (12 - cP.stair)) {
+              representation += "#";
+              continue;
+            }
+
+            representation += i === 0 ? "F" : "-";
           }
-        }, 5000);
+
+          representation += ` (${cP.stair})\t${cP.account.name}`;
+        }
+
+        console.log(representation);
+
+        return;
+      }
+
+      if (dataObject.read) {
+        console.clear();
+        hostClient.readline.setPrompt(dataObject.read);
+        hostClient.specs.push("playing");
+        hostClient.readline.prompt();
+        return;
+      }
+
+      if (dataObject.replay) {
+        return await hostClient.readline.question(dataObject.replay);
+      }
+
+      if (dataObject.endRead) {
+        hostClient.readline.setPrompt(
+            `${client.account?.name ?? "(no account!)"}@`
+          + `${client.service?.remoteAddress ?? ''}`
+          + `${client.service?.remotePort ? ':' + client.service.remotePort : ''}`
+          + ` > `
+        );
+
+        hostClient.specs = hostClient.specs.filter( s => s !== "playing" );
 
         hostClient.readline.prompt();
 
