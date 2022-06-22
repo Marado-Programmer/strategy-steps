@@ -142,6 +142,7 @@ module.exports = class Room {
 
   play = (playerName, chosenNumber) => {
     this.#players[playerName].chosen = +chosenNumber;
+    this.#players[playerName].chosenInit = +chosenNumber;
 
     this.#players[playerName].write(`endRead=${chosenNumber}`);
 
@@ -172,7 +173,7 @@ module.exports = class Room {
     setIntervalTimes(() => {
       this.notifyPlayers(`showScore=${JSON.stringify(this.#players)}`);
       for (let p in this.#players) {
-        if (!cantWalk.some(i => i === this.#players[p].chosen)) {
+        if (!cantWalk.some(i => i === this.#players[p].chosenInit)) {
           if (this.#players[p].chosen > 0) {
             this.#players[p].stair++;
             this.#players[p].chosen--;
@@ -209,6 +210,7 @@ module.exports = class Room {
         
         if (!(['N', 'n'].includes(ans))) {
           this.#players[p].chosen = 0;
+          this.#players[p].chosenInit = 0;
           this.#players[p].write("quitRoom=true");
           this.removePlayer(this.#players[p].account.name);
           removed = true;
